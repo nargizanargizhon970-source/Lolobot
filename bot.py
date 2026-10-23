@@ -261,10 +261,44 @@ async def handle_general_message(message: types.Message, bot: Bot):
         )
 
 
+from aiohttp import web
+
+
+async def start_health_server():
+    """
+    Render Web Service uchun portni ochiq tutuvchi server.
+    Render bepul tarifida Web Service ochilganda port talab qiladi.
+    """
+    port_str = os.getenv("PORT")
+    if not port_str:
+        return
+
+    try:
+        port = int(port_str)
+        app = web.Application()
+
+        async def handle_ping(request):
+            return web.Response(text="Bot is alive and running!")
+
+        app.router.add_get("/", handle_ping)
+        app.router.add_get("/health", handle_ping)
+
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", port)
+        await site.start()
+        logger.info(f"Render health check serveri ochildi (port: {port})")
+    except Exception as e:
+        logger.error(f"Render portini ochishda xatolik: {e}")
+
+
 async def main():
     if not BOT_TOKEN:
         print("[XATOLIK] BOT_TOKEN topilmadi! .env fayliga tokenni yozing.")
         return
+
+    # Render Web Service portini ochish
+    await start_health_server()
 
     bot = Bot(token=BOT_TOKEN)
     print("🚀 Bot ishga tushdi (Instagram + YouTube + AI Chat)! To'xtatish uchun Ctrl+C bosing.")
