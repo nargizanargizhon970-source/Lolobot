@@ -1,0 +1,22 @@
+# Muhit o'zgaruvchilari va maxfiy ma'lumotlar (Tokenlar)
+.env
+
+# Python kesh fayllari
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Yuklab olingan media fayllar
+downloads/
+*.mp4
+*.mp3
+*.webm
+
+# Virtual muhit
+venv/
+.venv/
+env/
+
+# IDE va muhit fayllari
+.vscode/
+.idea/
