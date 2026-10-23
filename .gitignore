@@ -1,5 +1,7 @@
-# Muhit o'zgaruvchilari va maxfiy ma'lumotlar (Tokenlar)
+# Muhit o'zgaruvchilari va maxfiy ma'lumotlar (Tokenlar, Cookies)
 .env
+cookies.txt
+*.cookies
 
 # Python kesh fayllari
 __pycache__/

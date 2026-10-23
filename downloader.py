@@ -4,6 +4,7 @@ import uuid
 import asyncio
 import subprocess
 from yt_dlp import YoutubeDL
+from config import COOKIES_FILE
 
 # Вақтинчалик юклаб олинган видеолар сақланадиган папка
 DOWNLOAD_DIR = "downloads"
@@ -15,6 +16,37 @@ try:
     FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
 except Exception:
     FFMPEG_PATH = None
+
+
+def clean_url(url: str) -> str:
+    """
+    Havolani tozalash: ortiqcha tracking parametrlarini olib tashlash va
+    Instagram share havolalarini to'g'ri ko'rinishga keltirish.
+    """
+    url = url.strip()
+
+    # Instagram share havolalarini to'g'rilash
+    if "instagram.com" in url:
+        url = re.sub(r'instagram\.com/share/reel/', 'instagram.com/reel/', url)
+        url = re.sub(r'instagram\.com/share/p/', 'instagram.com/p/', url)
+        # Tracking parametrlarini (igsh, utm_source va hk) tozalash
+        if "?" in url:
+            url = url.split("?")[0]
+        if not url.endswith("/"):
+            url += "/"
+
+    # YouTube share havolalaridan trackingni tozalash
+    elif "youtube.com" in url or "youtu.be" in url:
+        # youtu.be/ID?si=xxx -> youtu.be/ID
+        if "youtu.be/" in url and "?" in url:
+            base, qs = url.split("?", 1)
+            url = base
+        # youtube.com/shorts/ID?si=xxx -> youtube.com/shorts/ID
+        elif "/shorts/" in url and "?" in url:
+            base, qs = url.split("?", 1)
+            url = base
+
+    return url
 
 
 def _get_video_meta(path: str) -> dict:
@@ -80,18 +112,44 @@ def _download_sync(url: str) -> dict:
     """
     Instagram ва YouTube'дан видеони асл сифат ва форматда юклаб олиш.
     """
+    url = clean_url(url)
     unique_id = str(uuid.uuid4())[:8]
     output_template = os.path.join(DOWNLOAD_DIR, f"{unique_id}_%(id)s.%(ext)s")
 
     ydl_opts = {
-        # 50 MB лимитга мос энг юқори сифатни танлаш
-        'format': 'bv*[filesize_approx<?45M][ext=mp4]+ba*[filesize_approx<?10M][ext=m4a]/b[filesize_approx<?48M][ext=mp4]/bv*[height<=720]+ba/b[height<=720]/best',
+        # Telegram 50 MB лимитига мос сифатни танлаш (720p/480p оралиғида)
+        'format': (
+            'bv*[filesize<45M][ext=mp4]+ba*[filesize<8M][ext=m4a]/'
+            'b[filesize<48M][ext=mp4]/'
+            'bv*[height<=720][ext=mp4]+ba*[ext=m4a]/'
+            'b[height<=720][ext=mp4]/'
+            'bv*[height<=720]+ba/'
+            'b[height<=720]/'
+            'best[ext=mp4]/'
+            'best'
+        ),
         'outtmpl': output_template,
         'merge_output_format': 'mp4',
         'quiet': True,
         'no_warnings': True,
-        'max_filesize': 50 * 1024 * 1024,  # Telegram бот 50MB гача юбора олади
+        'noplaylist': True,
+        'socket_timeout': 30,
+        'retries': 3,
+        'max_filesize': 50 * 1024 * 1024,  # Telegram бот лимити: 50MB
+        'extractor_args': {
+            'youtube': {'player_client': ['android', 'web']}
+        }
     }
+
+    # Cookies файл мавжудлигини текшириш (Instagram ва YouTube чекловларини ечиш учун)
+    cookie_candidate = None
+    if COOKIES_FILE and os.path.exists(COOKIES_FILE):
+        cookie_candidate = COOKIES_FILE
+    elif os.path.exists("cookies.txt"):
+        cookie_candidate = "cookies.txt"
+
+    if cookie_candidate:
+        ydl_opts['cookiefile'] = cookie_candidate
 
     if FFMPEG_PATH:
         ydl_opts['ffmpeg_location'] = FFMPEG_PATH
@@ -114,6 +172,15 @@ def _download_sync(url: str) -> dict:
                     break
         elif os.path.exists(base_name + '.mp4'):
             filename = base_name + '.mp4'
+
+        # Агар файл топилмаса, DOWNLOAD_DIR дан unique_id бўйича қидирамиз
+        if not os.path.exists(filename):
+            for f in os.listdir(DOWNLOAD_DIR):
+                if f.startswith(unique_id) and not f.endswith('.fast.mp4'):
+                    candidate = os.path.join(DOWNLOAD_DIR, f)
+                    if os.path.exists(candidate) and os.path.getsize(candidate) > 0:
+                        filename = candidate
+                        break
 
         # Faststart тайёрлаш
         filename = _ensure_faststart_mp4(filename)
@@ -146,3 +213,4 @@ async def download_video(url: str) -> dict:
 
 # Эски функция номи билан мувофиқлик учун
 download_instagram_video = download_video
+

@@ -189,16 +189,48 @@ async def process_video_download(message: types.Message, bot: Bot, url: str, sou
     except Exception as e:
         logger.error(f"Xatolik ({source_name}): {e}", exc_info=True)
         error_str = str(e).lower()
-        if "private" in error_str or "login" in error_str:
-            await status_msg.edit_text("🔒 Bu video yopiq (private) profilga tegishli, uni yuklab bo'lmaydi.")
-        elif "not found" in error_str or "404" in error_str:
-            await status_msg.edit_text("❌ Video topilmadi yoki o'chirib tashlangan.")
+
+        if any(k in error_str for k in [
+            "empty media response", "login", "logged-in", "checkpoint", 
+            "rate-limit", "rate limit", "restricted", "requires authentication"
+        ]):
+            if source_name == "Instagram":
+                await status_msg.edit_text(
+                    "🔒 **Instagram videoni yuklab bo'lmadi!**\n\n"
+                    "Sabablari:\n"
+                    "• Video yopiq (private) akkauntga tegishli bo'lishi mumkin.\n"
+                    "• Instagram serveri avtorizatsiya talab qilmoqda.\n\n"
+                    "💡 *Tavsiya:* Ommaviy videolarni ham yuklash uchun botga `cookies.txt` faylini biriktirish tavsiya etiladi."
+                )
+            else:
+                await status_msg.edit_text("🔒 Bu video yopiq (private) profilga tegishli, uni yuklab bo'lmaydi.")
+
+        elif any(k in error_str for k in ["not found", "404", "unavailable", "removed", "deleted"]):
+            await status_msg.edit_text("❌ Video topilmadi, o'chirib tashlangan yoki havola noto'g'ri.")
+
         elif "live" in error_str:
             await status_msg.edit_text("⚠️ Jonli efir (live stream) videolarini yuklab bo'lmaydi.")
-        elif "too large" in error_str or "max_filesize" in error_str:
-            await status_msg.edit_text("⚠️ Video hajmi juda katta (50 MB dan ortiq). Bot faqat 50 MB gacha yubora oladi.")
+
+        elif any(k in error_str for k in ["too large", "max_filesize", "max-filesize", "larger than", "filesize"]):
+            await status_msg.edit_text(
+                "⚠️ Video hajmi juda katta (50 MB dan ortiq).\n"
+                "Telegram bot faqat 50 MB gacha bo'lgan videolarni yubora oladi."
+            )
+
+        elif any(k in error_str for k in ["bot", "sign in", "confirm you're not a bot"]):
+            await status_msg.edit_text(
+                "⚠️ Platforma bot tekshiruvini talab qildi. Iltimos, birozdan so'ng qayta urinib ko'ring."
+            )
+
+        elif any(k in error_str for k in ["timed out", "timeout", "connection", "temporary"]):
+            await status_msg.edit_text("⏱ Ulanish vaqti tugadi yoki internet sekin. Qayta urinib ko'ring.")
+
         else:
-            await status_msg.edit_text("❌ Videoni yuklab olishda xatolik yuz berdi. Havolani tekshirib qayta urinib ko'ring.")
+            await status_msg.edit_text(
+                "❌ **Videoni yuklab olishda xatolik yuz berdi.**\n\n"
+                f"Tafsilot: `{str(e)[:120]}`\n\n"
+                "Iltimos, havolani tekshirib qayta urinib ko'ring."
+            )
 
     finally:
         if file_path and os.path.exists(file_path):

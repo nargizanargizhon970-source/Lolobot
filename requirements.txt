@@ -1,5 +1,5 @@
 aiogram>=3.4.1
-yt-dlp>=2024.4.9
+yt-dlp>=2026.10.21
 python-dotenv>=1.0.1
 imageio-ffmpeg>=0.5.1
 g4f>=8.8.0

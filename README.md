@@ -53,14 +53,23 @@ Videolarni (ayniqsa yuqori sifatli audio va videoni) sifatli birlashtirish uchun
 
 ---
 
-### 5-qadam: Botni ishga tushirish
+### 5-qadam: Instagram va YouTube cookies sozlash (Tavsiya etiladi)
+Instagram va YouTube anonim so'rovlarni bloklagan paytda xatolik yuz bermasligi uchun:
+1. Brauzeringizga (Chrome / Edge / Firefox) **"Get cookies.txt LOCALLY"** kengaytmasini o'rnating.
+2. `instagram.com` ga kiring (akkauntingizga kirilgan holda).
+3. Kengaytmani ochib, **"Export"** tugmasini bosing va yuklangan faylni loyiha papkasiga `cookies.txt` nomi bilan saqlang.
+4. *Render yoki boshqa bulutli serverlarda:* `.env` yoki Environment Variables'ga `COOKIES_CONTENT` nomi bilan `cookies.txt` ichidagi matnni qo'yishingiz mumkin.
+
+---
+
+### 6-qadam: Botni ishga tushirish
 Quyidagi buyruqni bering:
 
 ```bash
 python bot.py
 ```
 
-Botingiz muvaffaqiyatli ishga tushadi! Telegram'ga o'tib, botingizga `/start` yuboring va istalgan Instagram video havolasini tashlab ko'ring.
+Botingiz muvaffaqiyatli ishga tushadi! Telegram'ga o'tib, botingizga `/start` yuboring va istalgan Instagram yoki YouTube video havolasini tashlab ko'ring.
 
 ---
 
